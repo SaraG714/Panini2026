@@ -44,6 +44,26 @@ function getMemberDuplicates(member) {
     .map(([id, c]) => ({ id, count: c }));
 }
 
+// Duplicados familiares: stickers cuyo total entre todos los miembros > 1
+function getFamilyDuplicates() {
+  const allIds = new Set();
+  state.members.forEach(m => Object.keys(m.owned).forEach(id => allIds.add(id)));
+  const result = [];
+  allIds.forEach(id => {
+    const owners = state.members
+      .filter(m => (m.owned[id] || 0) > 0)
+      .map(m => ({ member: m, count: m.owned[id] }));
+    const total = owners.reduce((s, o) => s + o.count, 0);
+    if (total > 1) result.push({ id, total, owners });
+  });
+  result.sort((a, b) => {
+    const na = parseInt(a.id), nb = parseInt(b.id);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.id.localeCompare(b.id);
+  });
+  return result;
+}
+
 // ── persistencia ─────────────────────────────────────────────
 function stateToData() {
   return {
@@ -487,7 +507,7 @@ function renderTeamCard(team, color) {
 
     const numEl = document.createElement('span');
     numEl.className = 'num';
-    numEl.textContent = num;
+    numEl.textContent = i + 1;
 
     const labelEl = document.createElement('span');
     labelEl.className = 'label';
@@ -496,7 +516,6 @@ function renderTeamCard(team, color) {
     const widget = buildCountWidget(id, () => {
       const newCount = getCount(id);
       row.className = 'sticker' + (newCount > 0 ? ' owned' : '') + (isSpecial ? ' special-row' : '') + (newCount > 1 ? ' duplicated' : '');
-      numEl.textContent = num;
       countSpan.textContent = `${teamOwnedCount(team)}/20`;
       renderGlobalProgress();
     });
@@ -545,34 +564,70 @@ function renderRepetidas() {
 
   if (isFamilyView()) {
     document.getElementById('repetidas-context').textContent = '🏠 Familia';
-    // Mostrar sección por miembro
-    let totalFamilyDups = 0;
-    state.members.forEach(m => {
-      const mDups = getMemberDuplicates(m);
-      if (!mDups.length) return;
-      totalFamilyDups += mDups.length;
+    const famDups = getFamilyDuplicates();
+    document.getElementById('repetidas-count').textContent =
+      `🔁 ${famDups.length} cromo${famDups.length !== 1 ? 's' : ''} repetido${famDups.length !== 1 ? 's' : ''} en familia`;
 
+    if (!famDups.length) {
+      container.innerHTML = '<div class="faltantes-empty">✅ Sin repetidos — ¡nadie comparte ningún cromo!</div>';
+      return;
+    }
+
+    // Agrupar por grupo
+    ALBUM.groups.forEach(g => {
+      const groupDups = famDups.filter(({ id }) => {
+        const num = parseInt(id);
+        return g.teams.some(t => num >= t.start && num < t.start + 20);
+      });
+      if (!groupDups.length) return;
       const block = document.createElement('div');
       block.className = 'faltantes-group';
       block.innerHTML = `
-        <div class="faltantes-group-header" style="background:${m.color}">
-          ${m.name} — ${mDups.length} cromo${mDups.length !== 1 ? 's' : ''} repetido${mDups.length !== 1 ? 's' : ''}
+        <div class="faltantes-group-header" style="background:${g.color}">
+          Grupo ${g.letter} — ${groupDups.length} con repetidos
         </div>
         <div class="faltantes-items"></div>
       `;
       const items = block.querySelector('.faltantes-items');
-      mDups.forEach(({ id, count }) => {
+      groupDups.forEach(({ id, owners }) => {
         const info = findStickerInfo(id);
+        const ownersText = owners.map(o =>
+          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? ` ×${o.count}` : ''}</span>`
+        ).join('');
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
         item.title = info.label;
-        item.textContent = `${id} ${info.short} ×${count}`;
+        item.innerHTML = `${id} ${info.short} ${ownersText}`;
         items.appendChild(item);
       });
       container.appendChild(block);
     });
-    document.getElementById('repetidas-count').textContent =
-      `🔁 ${totalFamilyDups} cromo${totalFamilyDups !== 1 ? 's' : ''} con repetidos`;
+
+    // Especiales
+    const specDups = famDups.filter(({ id }) => ALBUM.specials.some(s => s.id === id));
+    if (specDups.length) {
+      const block = document.createElement('div');
+      block.className = 'faltantes-group';
+      block.innerHTML = `
+        <div class="faltantes-group-header" style="background:#d97706">
+          ⭐ Especiales — ${specDups.length} con repetidos
+        </div>
+        <div class="faltantes-items"></div>
+      `;
+      const items = block.querySelector('.faltantes-items');
+      specDups.forEach(({ id, owners }) => {
+        const sp = ALBUM.specials.find(s => s.id === id);
+        const ownersText = owners.map(o =>
+          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? ` ×${o.count}` : ''}</span>`
+        ).join('');
+        const item = document.createElement('span');
+        item.className = 'faltantes-item dup-item';
+        item.innerHTML = `${sp.label} ${ownersText}`;
+        items.appendChild(item);
+      });
+      container.appendChild(block);
+    }
+    return;
   } else {
     const m = getActive();
     document.getElementById('repetidas-context').textContent = `👤 ${m?.name}`;
@@ -659,11 +714,11 @@ function findStickerInfo(id) {
 document.getElementById('copy-repetidas').addEventListener('click', () => {
   const lines = ['🔁 Repetidas para intercambiar — Panini WC 2026:'];
   if (isFamilyView()) {
-    state.members.forEach(m => {
-      const dups = getMemberDuplicates(m);
-      if (dups.length) {
-        lines.push(`${m.name}: ${dups.map(({ id, count }) => `#${id}(×${count-1})`).join(', ')}`);
-      }
+    const famDups = getFamilyDuplicates();
+    famDups.forEach(({ id, owners }) => {
+      const info = findStickerInfo(id);
+      const ownersText = owners.map(o => `${o.member.name}${o.count > 1 ? ` ×${o.count}` : ''}`).join(' + ');
+      lines.push(`#${id} ${info.short} — ${ownersText}`);
     });
   } else {
     const m = getActive();
