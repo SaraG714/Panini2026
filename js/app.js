@@ -597,7 +597,7 @@ function renderRepetidas() {
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
         item.title = info.label;
-        item.innerHTML = `${id} ${info.short} ${ownersText}`;
+        item.innerHTML = `${info.pos} ${info.short} ${ownersText}`;
         items.appendChild(item);
       });
       container.appendChild(block);
@@ -703,12 +703,13 @@ function findStickerInfo(id) {
     for (const t of g.teams) {
       const num = parseInt(id);
       if (num >= t.start && num < t.start + 20) {
-        return { short: t.short, label: `${t.name} — ${stickerLabel(t, num)}` };
+        const pos = num - t.start + 1;
+        return { short: t.short, label: `${t.name} — ${stickerLabel(t, num)}`, pos };
       }
     }
   }
   const sp = ALBUM.specials.find(s => s.id === id);
-  return sp ? { short: sp.label, label: sp.desc } : { short: id, label: id };
+  return sp ? { short: sp.label, label: sp.desc, pos: null } : { short: id, label: id, pos: null };
 }
 
 document.getElementById('copy-repetidas').addEventListener('click', () => {
