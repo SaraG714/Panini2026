@@ -719,13 +719,16 @@ document.getElementById('copy-repetidas').addEventListener('click', () => {
     famDups.forEach(({ id, owners }) => {
       const info = findStickerInfo(id);
       const ownersText = owners.map(o => `${o.member.name}${o.count > 1 ? ` ×${o.count}` : ''}`).join(' + ');
-      lines.push(`#${id} ${info.short} — ${ownersText}`);
+      lines.push(`${info.pos} ${info.short} — ${ownersText}`);
     });
   } else {
     const m = getActive();
     if (!m) return;
     const dups = getMemberDuplicates(m);
-    lines.push(dups.map(({ id, count }) => `#${id} ×${count-1}`).join(', ') || 'Sin repetidas');
+    lines.push(dups.map(({ id, count }) => {
+      const info = findStickerInfo(id);
+      return `${info.pos ?? id} ${info.short} ×${count-1}`;
+    }).join(', ') || 'Sin repetidas');
   }
   navigator.clipboard.writeText(lines.join('\n')).then(() => toast('📋 Lista de repetidas copiada'));
 });
@@ -768,8 +771,9 @@ function renderFaltantes() {
     mList.forEach(({ num, team }) => {
       const item = document.createElement('span');
       item.className = 'faltantes-item';
+      const pos = num - team.start + 1;
       item.title = `${team.name} — ${stickerLabel(team, num)}`;
-      item.textContent = `${num} ${team.short}`;
+      item.textContent = `${pos} ${team.short}`;
       item.addEventListener('click', () => {
         if (!setCount(String(num), 1)) { toast('Selecciona un miembro para editar'); return; }
         saveState();
@@ -816,7 +820,7 @@ document.getElementById('copy-faltantes').addEventListener('click', () => {
     g.teams.forEach(t => {
       for (let i = 0; i < 20; i++) {
         const num = t.start + i;
-        if (getCount(String(num)) === 0) miss.push(`${num}(${t.short})`);
+        if (getCount(String(num)) === 0) miss.push(`${i + 1}(${t.short})`);
       }
     });
     if (miss.length) lines.push(`Grupo ${g.letter}: ${miss.join(', ')}`);
