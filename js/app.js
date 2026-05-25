@@ -60,7 +60,7 @@ function dataToState(raw) {
     const owned = {};
     raw.owned.forEach(id => { owned[id] = 1; });
     return {
-      members: [{ id: 'principal', name: 'Sara', color: MEMBER_COLORS[0], owned }],
+      members: [{ id: 'principal', name: 'Juanjo', color: MEMBER_COLORS[1], owned }],
       activeMemberId: 'principal',
       gastos: raw.gastos || [],
     };
@@ -894,7 +894,8 @@ document.getElementById('import-input').addEventListener('change', e => {
 document.getElementById('reset-btn').addEventListener('click', () => {
   if (!confirm('¿Restablecer? Esto borrará todos los datos y dejará un solo miembro con el estado inicial del PDF.')) return;
   state = {
-    members: [{ id: 'principal', name: 'Sara', color: MEMBER_COLORS[0], owned: buildInitialOwnedMap() }],
+    members: [{ id: 'principal', name: 'Juanjo', color: MEMBER_COLORS[1], owned: buildInitialOwnedMap() }
+],
     activeMemberId: 'principal',
     gastos: structuredClone(INITIAL_GASTOS),
   };
@@ -941,10 +942,18 @@ async function init() {
   const data = await SYNC.load();
   if (data && (data.members?.length || data.owned)) {
     state = dataToState(data);
+    // Migración: si el miembro principal aún se llama 'Sara', renombrarlo a 'Juanjo'
+    const principal = state.members.find(m => m.id === 'principal' && m.name === 'Sara');
+    if (principal) {
+      principal.name = 'Juanjo';
+      principal.color = MEMBER_COLORS[1];
+      saveState();
+    }
   } else {
     // Primera vez
     state = {
-      members: [{ id: 'principal', name: 'Sara', color: MEMBER_COLORS[0], owned: buildInitialOwnedMap() }],
+      members: [{ id: 'principal', name: 'Juanjo', color: MEMBER_COLORS[1], owned: buildInitialOwnedMap() }
+],
       activeMemberId: 'principal',
       gastos: structuredClone(INITIAL_GASTOS),
     };
