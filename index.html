@@ -29,16 +29,47 @@
       <button class="tab active" data-tab="resumen">📊 Resumen</button>
       <button class="tab" data-tab="grupos">⚽ Grupos</button>
       <button class="tab" data-tab="especiales">⭐ Especiales</button>
-      <button class="tab" data-tab="faltantes">🔄 Faltantes</button>
+      <button class="tab" data-tab="repetidas">🔁 Repetidas</button>
+      <button class="tab" data-tab="faltantes">❌ Faltantes</button>
       <button class="tab" data-tab="gasto">💰 Gasto</button>
       <button class="tab" data-tab="ajustes">⚙️ Ajustes</button>
     </nav>
   </header>
 
+  <!-- Barra de miembros (siempre visible) -->
+  <div class="member-bar" id="member-bar">
+    <div class="member-bar-inner">
+      <span class="member-bar-label">Ver como:</span>
+      <div class="member-chips" id="member-chips"></div>
+      <button id="add-member-btn" class="member-chip-add" title="Añadir miembro">＋ Añadir</button>
+    </div>
+  </div>
+
+  <!-- Modal: añadir/editar miembro -->
+  <div class="modal-overlay hidden" id="member-modal">
+    <div class="modal">
+      <h3 id="modal-title">Nuevo miembro</h3>
+      <label>Nombre
+        <input id="modal-name" type="text" placeholder="Sara, Juanjo…" maxlength="20">
+      </label>
+      <label>Color
+        <div class="color-picker" id="modal-color-picker"></div>
+      </label>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-secondary">Cancelar</button>
+        <button id="modal-delete" class="btn-danger hidden">Eliminar</button>
+        <button id="modal-save" class="btn-primary">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <main>
     <!-- RESUMEN -->
     <section class="view" id="view-resumen">
-      <h2>Resumen general</h2>
+      <div class="view-header">
+        <h2>Resumen general</h2>
+        <span id="resumen-context" class="context-badge"></span>
+      </div>
       <div class="resumen-grid" id="resumen-grid"></div>
     </section>
 
@@ -50,13 +81,32 @@
 
     <!-- ESPECIALES -->
     <section class="view hidden" id="view-especiales">
-      <h2>⭐ Cromos especiales (Panini + FWC 1–19)</h2>
+      <div class="view-header">
+        <h2>⭐ Cromos especiales (Panini + FWC 1–19)</h2>
+        <span id="especiales-context" class="context-badge"></span>
+      </div>
       <div class="specials-grid" id="specials-grid"></div>
+    </section>
+
+    <!-- REPETIDAS -->
+    <section class="view hidden" id="view-repetidas">
+      <div class="view-header">
+        <h2>🔁 Cromos repetidos</h2>
+        <span id="repetidas-context" class="context-badge"></span>
+      </div>
+      <div class="faltantes-toolbar">
+        <span id="repetidas-count" class="pill pill-green"></span>
+        <button id="copy-repetidas" class="btn-secondary">📋 Copiar lista (intercambios)</button>
+      </div>
+      <div id="repetidas-list"></div>
     </section>
 
     <!-- FALTANTES -->
     <section class="view hidden" id="view-faltantes">
-      <h2>🔄 Cromos que me faltan</h2>
+      <div class="view-header">
+        <h2>❌ Cromos que faltan</h2>
+        <span id="faltantes-context" class="context-badge"></span>
+      </div>
       <div class="faltantes-toolbar">
         <span id="faltantes-count" class="pill"></span>
         <button id="copy-faltantes" class="btn-secondary">📋 Copiar lista</button>
@@ -68,14 +118,10 @@
     <section class="view hidden" id="view-gasto">
       <h2>💰 Tracker de gasto</h2>
       <div class="gasto-summary" id="gasto-summary"></div>
-      <table class="gasto-table" id="gasto-table">
+      <table class="gasto-table">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Sobres</th>
-            <th>Cromos</th>
-            <th>Gasto (€)</th>
-            <th></th>
+            <th>Fecha</th><th>Sobres</th><th>Cromos</th><th>Gasto (€)</th><th></th>
           </tr>
         </thead>
         <tbody id="gasto-body"></tbody>
@@ -86,37 +132,35 @@
     <!-- AJUSTES -->
     <section class="view hidden" id="view-ajustes">
       <h2>⚙️ Ajustes</h2>
-
-      <!-- Estado de Firebase -->
       <div class="ajustes-card" id="firebase-status-card">
         <h3>☁️ Sincronización Firebase</h3>
         <div id="firebase-status-text"></div>
       </div>
-
+      <div class="ajustes-card">
+        <h3>Miembros de la familia</h3>
+        <p>Gestiona quién participa en el álbum. Haz click en un miembro para editarlo.</p>
+        <div id="members-list-ajustes"></div>
+      </div>
       <div class="ajustes-card">
         <h3>Copia de seguridad manual</h3>
-        <p>Exporta tus datos a un archivo JSON como backup adicional.</p>
+        <p>Exporta tus datos a JSON como backup adicional.</p>
         <div class="btn-row">
           <button id="export-btn" class="btn-primary">⬇️ Exportar JSON</button>
-          <label class="btn-secondary">
-            ⬆️ Importar JSON
+          <label class="btn-secondary">⬆️ Importar JSON
             <input type="file" id="import-input" accept="application/json" hidden>
           </label>
         </div>
       </div>
-
       <div class="ajustes-card danger">
         <h3>Reset</h3>
-        <p>Restablece todos los datos al estado inicial del PDF (883 cromos conseguidos).</p>
+        <p>Restablece al estado inicial del PDF (883 cromos en el primer miembro).</p>
         <button id="reset-btn" class="btn-danger">🗑️ Restablecer datos</button>
       </div>
     </section>
   </main>
 
-  <!-- Firebase SDK (compat mode — se carga siempre, se usa solo si está configurado) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script src="js/data.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/sync.js"></script>

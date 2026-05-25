@@ -211,6 +211,28 @@ const INITIAL_GASTOS = [
   { fecha: '',     sobres: 12, cromos: 84,  gasto: 0 },
 ];
 
+// Colores disponibles para miembros de la familia
+const MEMBER_COLORS = [
+  '#ec4899','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ef4444','#14b8a6','#f97316',
+];
+
+// Construye el mapa inicial de cromos (id → cantidad) a partir de los faltantes del PDF
+function buildInitialOwnedMap() {
+  const owned = {};
+  ALBUM.groups.forEach(g => {
+    g.teams.forEach(t => {
+      for (let i = 0; i < 20; i++) {
+        const num = String(t.start + i);
+        if (!INITIAL_MISSING.has(num)) owned[num] = 1;
+      }
+    });
+  });
+  ALBUM.specials.forEach(s => {
+    if (!INITIAL_MISSING.has(s.id)) owned[s.id] = 1;
+  });
+  return owned;
+}
+
 // Etiqueta de un cromo: "Escudo / Badge", "Foto grupal", o "Jugador N"
 function stickerLabel(team, num) {
   const offset = num - team.start;

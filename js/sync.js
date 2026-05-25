@@ -43,10 +43,9 @@ const SYNC = (() => {
       // Escuchar cambios en tiempo real de otros dispositivos
       docRef.onSnapshot(snap => {
         if (!snap.exists) return;
-        const data = snap.data();
-        // Solo aplicamos si NO fue este dispositivo el que guardó
-        // (evitamos el "eco" de nuestras propias escrituras)
-        if (data._source === getDeviceId()) return;
+        const raw = snap.data();
+        if (raw._source === getDeviceId()) return;
+        const data = deserializeFirestore(raw);
         if (onRemoteChange) onRemoteChange(data);
       }, err => {
         console.error('Firestore onSnapshot error:', err);
@@ -76,9 +75,8 @@ const SYNC = (() => {
     try {
       const snap = await docRef.get();
       if (snap.exists) {
-        const remoteData = snap.data();
-        // Si el remoto es más reciente, lo usamos
-        const remoteTime = remoteData.updatedAt?.toMillis?.() || 0;
+        const remoteData = deserializeFirestore(snap.data());
+        const remoteTime = snap.data().updatedAt?.toMillis?.() || 0;
         const localTime = localData?.savedAt ? new Date(localData.savedAt).getTime() : 0;
         if (remoteTime >= localTime) return remoteData;
       }
@@ -90,24 +88,31 @@ const SYNC = (() => {
 
   // --- Guarda (con debounce para no saturar Firestore) ---
   function save(data) {
+    const payload = { ...data, savedAt: new Date().toISOString() };
     // Guardar siempre en localStorage (backup offline)
-    localStorage.setItem('panini2026', JSON.stringify({
-      ...data,
-      savedAt: new Date().toISOString(),
-    }));
+    localStorage.setItem('panini2026', JSON.stringify(payload));
 
     if (!FIREBASE_ENABLED || !docRef) return;
+
+    // Firestore no admite objetos con claves numéricas muy anidadas de forma óptima.
+    // Serializamos los owned maps como JSON string para evitar problemas de profundidad.
+    const firestorePayload = {
+      ...data,
+      // Serializar owned de cada miembro como string
+      members: (data.members || []).map(m => ({
+        ...m,
+        owned: JSON.stringify(m.owned || {}),
+      })),
+      _source: getDeviceId(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
 
     // Debounce: espera 800ms desde el último cambio antes de escribir a Firestore
     clearTimeout(saveTimer);
     setSyncStatus('saving');
     saveTimer = setTimeout(async () => {
       try {
-        await docRef.set({
-          ...data,
-          _source: getDeviceId(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
+        await docRef.set(firestorePayload);
         setSyncStatus('saved');
       } catch (err) {
         console.error('Firestore save error:', err);
@@ -124,6 +129,18 @@ const SYNC = (() => {
       localStorage.setItem('_panini_device_id', id);
     }
     return id;
+  }
+
+  // Deserializar owned de cada miembro (estaban guardados como JSON string)
+  function deserializeFirestore(data) {
+    if (!data.members) return data;
+    return {
+      ...data,
+      members: data.members.map(m => ({
+        ...m,
+        owned: typeof m.owned === 'string' ? JSON.parse(m.owned) : (m.owned || {}),
+      })),
+    };
   }
 
   return { init, load, save, setSyncStatus };
