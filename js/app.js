@@ -227,60 +227,78 @@ document.getElementById('modal-delete').addEventListener('click', () => {
 // WIDGET de contador de cromo [−] n [+]
 // ════════════════════════════════════════════════════════════
 function buildCountWidget(id, onUpdate) {
-  const count = getCount(id);
-  const editable = !isFamilyView();
-  const owners = isFamilyView() ? getOwners(id) : [];
-
   const wrap = document.createElement('div');
   wrap.className = 'count-widget';
 
-  if (isFamilyView()) {
-    // Vista familiar: muestra quién lo tiene
-    if (owners.length === 0) {
-      wrap.innerHTML = `<span class="cw-nobody">—</span>`;
-    } else {
-      owners.forEach(m => {
-        const c = m.owned[id] || 0;
-        const el = document.createElement('span');
-        el.className = 'cw-owner';
-        el.style.background = m.color;
-        el.title = `${m.name}: ${c} copia${c > 1 ? 's' : ''}`;
-        el.textContent = m.name.slice(0,2).toUpperCase() + (c > 1 ? ` ×${c}` : '');
-        wrap.appendChild(el);
-      });
-    }
-  } else {
-    // Vista de miembro: [−] n [+]
-    if (count === 0) {
+  function render() {
+    wrap.innerHTML = '';
+    const count = getCount(id); // lee el estado actual cada vez
+
+    if (isFamilyView()) {
+      const owners = getOwners(id);
+      if (owners.length === 0) {
+        wrap.innerHTML = `<span class="cw-nobody">—</span>`;
+      } else {
+        owners.forEach(m => {
+          const c = m.owned[id] || 0;
+          const el = document.createElement('span');
+          el.className = 'cw-owner';
+          el.style.background = m.color;
+          el.title = `${m.name}: ${c} copia${c > 1 ? 's' : ''}`;
+          el.textContent = m.name.slice(0, 2).toUpperCase() + (c > 1 ? ` ×${c}` : '');
+          wrap.appendChild(el);
+        });
+      }
+    } else if (count === 0) {
       const btn = document.createElement('button');
       btn.className = 'cw-add';
       btn.textContent = '＋';
       btn.title = 'Marcar como conseguido';
-      btn.addEventListener('click', e => { e.stopPropagation(); setCount(id, 1); saveState(); onUpdate(); });
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        setCount(id, 1);
+        saveState();
+        render();
+        onUpdate();
+      });
       wrap.appendChild(btn);
     } else {
       const minus = document.createElement('button');
       minus.className = 'cw-btn cw-minus';
       minus.textContent = '−';
       minus.title = 'Quitar una copia';
-      minus.addEventListener('click', e => { e.stopPropagation(); setCount(id, count - 1); saveState(); onUpdate(); });
+      minus.addEventListener('click', e => {
+        e.stopPropagation();
+        setCount(id, count - 1);
+        saveState();
+        render();
+        onUpdate();
+      });
 
       const num = document.createElement('span');
       num.className = 'cw-num' + (count > 1 ? ' cw-dup' : '');
       num.textContent = count;
-      num.title = count === 1 ? 'Tienes 1 copia' : `Tienes ${count} copias (${count-1} repetida${count>2?'s':''})`;
+      num.title = count === 1 ? 'Tienes 1 copia' : `Tienes ${count} copias (${count - 1} repetida${count > 2 ? 's' : ''})`;
 
       const plus = document.createElement('button');
       plus.className = 'cw-btn cw-plus';
       plus.textContent = '＋';
       plus.title = 'Añadir copia extra (repetida)';
-      plus.addEventListener('click', e => { e.stopPropagation(); setCount(id, count + 1); saveState(); onUpdate(); });
+      plus.addEventListener('click', e => {
+        e.stopPropagation();
+        setCount(id, count + 1);
+        saveState();
+        render();
+        onUpdate();
+      });
 
       wrap.appendChild(minus);
       wrap.appendChild(num);
       wrap.appendChild(plus);
     }
   }
+
+  render();
   return wrap;
 }
 
