@@ -592,12 +592,12 @@ function renderRepetidas() {
       groupDups.forEach(({ id, owners }) => {
         const info = findStickerInfo(id);
         const ownersText = owners.map(o =>
-          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? ` ×${o.count}` : ''}</span>`
+          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? `(×${o.count})` : ''}</span>`
         ).join('');
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
         item.title = info.label;
-        item.innerHTML = `${info.pos} ${info.short} ${ownersText}`;
+        item.innerHTML = `${info.short}${info.pos} ${ownersText}`;
         items.appendChild(item);
       });
       container.appendChild(block);
@@ -618,7 +618,7 @@ function renderRepetidas() {
       specDups.forEach(({ id, owners }) => {
         const sp = ALBUM.specials.find(s => s.id === id);
         const ownersText = owners.map(o =>
-          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? ` ×${o.count}` : ''}</span>`
+          `<span class="cw-owner" style="background:${o.member.color}" title="${o.member.name}">${o.member.name.slice(0,2).toUpperCase()}${o.count > 1 ? `(×${o.count})` : ''}</span>`
         ).join('');
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
@@ -658,7 +658,7 @@ function renderRepetidas() {
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
         item.title = info.label;
-        item.textContent = `${info.pos} ${info.short} ×${count}`;
+        item.textContent = `${info.short}${info.pos} ×${count}`;
         item.addEventListener('click', () => {
           setCount(id, count - 1);
           saveState();
@@ -718,8 +718,8 @@ document.getElementById('copy-repetidas').addEventListener('click', () => {
     const famDups = getFamilyDuplicates();
     famDups.forEach(({ id, owners }) => {
       const info = findStickerInfo(id);
-      const ownersText = owners.map(o => `${o.member.name}${o.count > 1 ? ` ×${o.count}` : ''}`).join(' + ');
-      lines.push(`${info.pos} ${info.short} — ${ownersText}`);
+      const ownersText = owners.map(o => `${o.member.name}${o.count > 1 ? `(×${o.count})` : ''}`).join(' + ');
+      lines.push(`${info.short}${info.pos} — ${ownersText}`);
     });
   } else {
     const m = getActive();
@@ -727,7 +727,7 @@ document.getElementById('copy-repetidas').addEventListener('click', () => {
     const dups = getMemberDuplicates(m);
     lines.push(dups.map(({ id, count }) => {
       const info = findStickerInfo(id);
-      return `${info.pos ?? id} ${info.short} ×${count-1}`;
+      return `${info.short}${info.pos ?? id}(×${count-1})`;
     }).join(', ') || 'Sin repetidas');
   }
   navigator.clipboard.writeText(lines.join('\n')).then(() => toast('📋 Lista de repetidas copiada'));
