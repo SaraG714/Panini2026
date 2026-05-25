@@ -4,12 +4,12 @@
 // Instrucciones en README.md (sección "Firebase Setup")
 
 const FIREBASE_CONFIG = {
-  apiKey:            "PEGA_AQUÍ_TU_apiKey",
-  authDomain:        "PEGA_AQUÍ_TU_authDomain",
-  projectId:         "PEGA_AQUÍ_TU_projectId",
-  storageBucket:     "PEGA_AQUÍ_TU_storageBucket",
-  messagingSenderId: "PEGA_AQUÍ_TU_messagingSenderId",
-  appId:             "PEGA_AQUÍ_TU_appId",
+  apiKey:            "AIzaSyBTiWt8OkPpdk1t2CSCmTTNU5TOXAOkGVo",
+  authDomain:        "panini2026-48c24.firebaseapp.com",
+  projectId:         "panini2026-48c24",
+  storageBucket:     "panini2026-48c24.firebasestorage.app",
+  messagingSenderId: "781184836608",
+  appId:             "1:781184836608:web:61a6ab88c1bdcef83aa4e5",
 };
 
 // ID del documento compartido — todos los dispositivos de la familia
