@@ -658,7 +658,7 @@ function renderRepetidas() {
         const item = document.createElement('span');
         item.className = 'faltantes-item dup-item';
         item.title = info.label;
-        item.textContent = `${id} ${info.short} ×${count}`;
+        item.textContent = `${info.pos} ${info.short} ×${count}`;
         item.addEventListener('click', () => {
           setCount(id, count - 1);
           saveState();
